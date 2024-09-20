@@ -1,19 +1,36 @@
-import { Router } from 'express';
-import Review from '../models/reviewModel';  // Import the review model
+import express from 'express';
+import Joi from 'joi';
+import Review  from '../models/reviewModel';
+import { errorHandler } from '../middleware/errorHandler'; 
 
-const router = Router();
+const router = express.Router();
 
-// POST route to add a review
-router.post('/', async (req, res) => {
-  const { studentId, classId, rating, comments } = req.body;
+
+const reviewSchema = Joi.object({
+  studentId: Joi.string().required(),
+  classId: Joi.string().required(),
+  rating: Joi.number().min(1).max(5).required(),
+  comments: Joi.string().max(500).required()
+});
+
+
+router.post('/', async (req, res, next) => {
+  const { error } = reviewSchema.validate(req.body);
+
+  if (error) {
+    return next(error); 
+  }
 
   try {
-    const newReview = new Review({ studentId, classId, rating, comments });
-    await newReview.save();
-    res.status(201).json(newReview);
-  } catch (error) {
-    res.status(500).json({ error: 'Error adding review' });
+    const review = new Review(req.body);
+    const savedReview = await review.save();
+    res.status(201).json(savedReview);
+  } catch (err) {
+    next(err); 
   }
 });
+
+
+router.use(errorHandler);
 
 export default router;

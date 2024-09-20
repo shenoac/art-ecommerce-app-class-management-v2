@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import classRoutes from './routes/classRoutes';
 import reviewRoutes from './routes/reviewRoutes';
+import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,6 +17,8 @@ mongoose.connect(mongoUri)
 app.use(express.json()); 
 app.use('/classes', classRoutes);
 app.use('/reviews', reviewRoutes);
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
