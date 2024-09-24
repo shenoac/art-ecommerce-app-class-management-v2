@@ -1,19 +1,32 @@
-import { Router } from 'express';
-import Review from '../models/reviewModel';  // Import the review model
 
-const router = Router();
+import { VercelRequest, VercelResponse } from '@vercel/node';
+import Joi from 'joi';
+import mongoose from 'mongoose';
+import Review from '../models/reviewModel';
 
-// POST route to add a review
-router.post('/', async (req, res) => {
-  const { studentId, classId, rating, comments } = req.body;
-
-  try {
-    const newReview = new Review({ studentId, classId, rating, comments });
-    await newReview.save();
-    res.status(201).json(newReview);
-  } catch (error) {
-    res.status(500).json({ error: 'Error adding review' });
-  }
+// Validation schema
+const reviewSchema = Joi.object({
+  studentId: Joi.string().required(),
+  classId: Joi.string().required(),
+  rating: Joi.number().min(1).max(5).required(),
+  comments: Joi.string().max(500).required()
 });
 
-export default router;
+// Create a review (POST /reviews)
+export async function createReview(req: VercelRequest, res: VercelResponse) {
+  const { error } = reviewSchema.validate(req.body);
+
+  if (error) {
+    return res.status(400).json({ message: 'Validation Error', error: error.details });
+  }
+
+  try {
+    const review = new Review(req.body);
+    const savedReview = await review.save();
+    res.status(201).json(savedReview);
+  } catch (err) {
+    const error = err as Error;
+    console.error(error.message);
+    res.status(500).json({ message: 'Failed to create review', error: error.message });
+  }
+}
