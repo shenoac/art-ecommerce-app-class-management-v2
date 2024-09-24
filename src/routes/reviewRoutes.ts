@@ -1,11 +1,10 @@
-import express from 'express';
+
+import { VercelRequest, VercelResponse } from '@vercel/node';
 import Joi from 'joi';
-import Review  from '../models/reviewModel';
-import { errorHandler } from '../middleware/errorHandler'; 
+import mongoose from 'mongoose';
+import Review from '../models/reviewModel';
 
-const router = express.Router();
-
-
+// Validation schema
 const reviewSchema = Joi.object({
   studentId: Joi.string().required(),
   classId: Joi.string().required(),
@@ -13,12 +12,12 @@ const reviewSchema = Joi.object({
   comments: Joi.string().max(500).required()
 });
 
-
-router.post('/', async (req, res, next) => {
+// Create a review (POST /reviews)
+export async function createReview(req: VercelRequest, res: VercelResponse) {
   const { error } = reviewSchema.validate(req.body);
 
   if (error) {
-    return next(error); 
+    return res.status(400).json({ message: 'Validation Error', error: error.details });
   }
 
   try {
@@ -26,11 +25,8 @@ router.post('/', async (req, res, next) => {
     const savedReview = await review.save();
     res.status(201).json(savedReview);
   } catch (err) {
-    next(err); 
+    const error = err as Error;
+    console.error(error.message);
+    res.status(500).json({ message: 'Failed to create review', error: error.message });
   }
-});
-
-
-router.use(errorHandler);
-
-export default router;
+}
